@@ -115,7 +115,7 @@ impl<'a> AssetPath<'a> {
     ///
     /// This will return a [`ParseAssetPathError`] if `asset_path` is in an invalid format.
     pub fn try_parse(asset_path: &'a str) -> Result<AssetPath<'a>, ParseAssetPathError> {
-        let (source, path, label) = Self::parse_internal(asset_path)?;
+        let (source, path, label) = Self::parse_internal(asset_path).unwrap();
         Ok(Self {
             source: match source {
                 Some(source) => AssetSourceId::Name(CowArc::Borrowed(source)),
@@ -392,34 +392,9 @@ impl<'a> AssetPath<'a> {
                 _ => rpath,
             };
 
-            let mut result_path = PathBuf::new();
-            if !is_absolute && source.is_none() {
-                for elt in base_path.iter() {
-                    if elt == "." {
-                        // Skip
-                    } else if elt == ".." {
-                        if !result_path.pop() {
-                            // Preserve ".." if insufficient matches (per RFC 1808).
-                            result_path.push(elt);
-                        }
-                    } else {
-                        result_path.push(elt);
-                    }
-                }
-            }
-
-            for elt in rpath.iter() {
-                if elt == "." {
-                    // Skip
-                } else if elt == ".." {
-                    if !result_path.pop() {
-                        // Preserve ".." if insufficient matches (per RFC 1808).
-                        result_path.push(elt);
-                    }
-                } else {
-                    result_path.push(elt);
-                }
-            }
+            let mut result_path = if !is_absolute && source.is_none() { base_path } else { PathBuf::new() };
+            result_path.push(rpath);
+            result_path = result_path.normalized();
 
             Ok(AssetPath {
                 source: match source {
@@ -682,6 +657,29 @@ impl FromReflect for AssetPath<'static> {
         Some(Clone::clone(<dyn ::core::any::Any>::downcast_ref::<
             AssetPath<'static>,
         >(<dyn Reflect>::as_any(reflect))?))
+    }
+}
+
+pub(crate) trait NormalizedPath {
+    fn normalized(&self) -> PathBuf;
+}
+
+impl NormalizedPath for Path {
+    fn normalized(&self) -> PathBuf {
+        let mut result_path =  PathBuf::new();
+        for elt in self.iter() {
+            if elt == "." {
+                // Skip
+            } else if elt == ".." {
+                if !result_path.pop() {
+                    // Preserve ".." if insufficient matches (per RFC 1808).
+                    result_path.push(elt);
+                }
+            } else {
+                result_path.push(elt);
+            }
+        }
+        result_path
     }
 }
 
