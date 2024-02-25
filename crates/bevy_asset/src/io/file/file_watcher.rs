@@ -12,7 +12,7 @@ use notify_debouncer_full::{
     DebounceEventResult, Debouncer, FileIdMap,
 };
 use std::path::{Path, PathBuf};
-use crate::{AssetPath, NormalizedPath};
+use crate::path::normalize_path;
 
 /// An [`AssetWatcher`] that watches the filesystem for changes to asset files in a given root folder and emits [`AssetSourceEvent`]
 /// for each relevant change. This uses [`notify_debouncer_full`] to retrieve "debounced" filesystem events.
@@ -29,7 +29,7 @@ impl FileWatcher {
         sender: Sender<AssetSourceEvent>,
         debounce_wait_time: Duration,
     ) -> Result<Self, notify::Error> {
-        let root = super::get_base_path().join(root).normalized();
+        let root = normalize_path(super::get_base_path().join(root).as_path());
         let watcher = new_asset_event_debouncer(
             root.clone(),
             debounce_wait_time,
