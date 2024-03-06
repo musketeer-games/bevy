@@ -896,6 +896,10 @@ category = "3D Rendering"
 wasm = true
 
 [[example]]
+name = "transmission_black"
+path = "examples/3d/transmission_black.rs"
+
+[[example]]
 name = "two_passes"
 path = "examples/3d/two_passes.rs"
 doc-scrape-examples = true
